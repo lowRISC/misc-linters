@@ -1,8 +1,8 @@
-# Contributing code to the temple repository
+# Contributing code to the misc-linters repository
 
 ## Contributor License Agreement
 
-Contributions to Temple must be accompanied by sign-off text that indicates
+Contributions to misc-linters must be accompanied by sign-off text that indicates
 acceptance of the Contributor License Agreement (see [CLA](CLA) for full
 text), which is closely derived from the Apache Individual Contributor License
 Agreement. The sign-off text must be included once per commit, in the commit
@@ -40,7 +40,7 @@ involved.
   implementation options. If you would like to make a large-scale change or
   discuss multiple implementation options, discuss on the mailing list.
 * Create pull requests from a fork rather than making new branches in 
-  `github.com/lowrisc/temple`.
+  `github.com/lowrisc/misc-linters`.
 * Do not force push.
 * Do not attempt to commit code with a non-Apache license without discussing
   first.
