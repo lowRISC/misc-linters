@@ -286,7 +286,6 @@ def check_file_with_style(licence, filepath, comment_style):
     associated success or error message.
 
     '''
-
     def next_line(file, line_no):
         return (next(file).rstrip(), line_no + 1)
 
