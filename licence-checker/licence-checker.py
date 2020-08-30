@@ -8,6 +8,7 @@ import argparse
 import fnmatch
 import logging
 import subprocess
+import re
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -40,8 +41,8 @@ class LicenceHeader(object):
         return first_word
 
 
-class LineCommentStyle(object):
-    """Helpers for line-style comments."""
+class CommentStyle(object):
+    """Helpers for generic comment styles."""
     def __init__(self, prefix):
         self.comment_prefix = str(prefix)
         self.first_line_prefix = self.comment_prefix
@@ -52,6 +53,20 @@ class LineCommentStyle(object):
     def expected_full_line(self, licence_line):
         return self.comment_prefix + ' ' + licence_line
 
+    def match(self, licence, line, match_regex):
+        """Match a license line wih a retrieved line using either string matching or regex
+        given the comment style.
+        """
+        if match_regex:
+            return re.compile(self.expected_full_line(licence)).match(line)
+        else:
+            return line == self.expected_full_line(licence)
+
+
+class LineCommentStyle(CommentStyle):
+    """Helpers for line-style comments."""
+    pass
+
 
 class DifferentFirstLineCommentStyle(LineCommentStyle):
     """Some files have a different allowable prefix for their first line."""
@@ -60,15 +75,11 @@ class DifferentFirstLineCommentStyle(LineCommentStyle):
         self.first_line_prefix = first_line_prefix
 
 
-class BlockCommentStyle(object):
+class BlockCommentStyle(CommentStyle):
     """Helpers for block-style comments."""
     def __init__(self, prefix, suffix):
-        self.comment_prefix = str(prefix)
+        super().__init__(prefix)
         self.comment_suffix = str(suffix)
-        self.first_line_prefix = self.comment_prefix
-
-    def search_line(self, licence_first_word):
-        return self.comment_prefix + ' ' + licence_first_word
 
     def expected_full_line(self, licence_line):
         return self.comment_prefix + ' ' + licence_line + ' ' + self.comment_suffix
@@ -243,12 +254,12 @@ def check_paths(config, git_paths):
             results.excluded(filepath, "Path matches exclude pattern")
             continue
 
-        check_file_for_licence(config.licence, results, filepath)
+        check_file_for_licence(config, results, filepath)
 
     return results
 
 
-def check_file_for_licence(licence, results, filepath):
+def check_file_for_licence(config, results, filepath):
     styles = detect_comment_char(filepath.name)
 
     if styles is None:
@@ -266,7 +277,8 @@ def check_file_for_licence(licence, results, filepath):
 
     problems = []
     for style in styles:
-        good, line_num, msg = check_file_with_style(licence, filepath, style)
+        good, line_num, msg = check_file_with_style(config.licence, filepath,
+                                                    style, config.match_regex)
         if good:
             results.passed(filepath, line_num, msg)
             return
@@ -278,7 +290,7 @@ def check_file_for_licence(licence, results, filepath):
         results.failed(filepath, line_num, msg)
 
 
-def check_file_with_style(licence, filepath, comment_style):
+def check_file_with_style(licence, filepath, comment_style, match_regex):
     '''Check the file at filepath, assuming it uses comment_style.
 
     Returns a tuple (is_good, line_number, msg). is_good is True on success;
@@ -329,7 +341,8 @@ def check_file_with_style(licence, filepath, comment_style):
         # current line is in the first comment, so check the line matches the
         # expected first line:
         licence_assumed_start = line_no
-        if line != comment_style.expected_full_line(licence[0]):
+
+        if not comment_style.match(licence[0], line, match_regex):
             return (False, line_no, "Licence does not match")
 
         for (licence_line_no, licence_line) in licence.numbered_lines(skip=1):
@@ -340,7 +353,7 @@ def check_file_with_style(licence, filepath, comment_style):
                         "Reached end of file before finding licence")
 
             # Check against full expected line.
-            if line != comment_style.expected_full_line(licence_line):
+            if not comment_style.match(licence_line, line, match_regex):
                 return (False, line_no, "Licence did not match")
 
     return (True, licence_assumed_start, "Licence found")
@@ -381,6 +394,23 @@ def main():
 
     config.licence = LicenceHeader(parsed_config['licence'])
     config.exclude_paths = set(parsed_config['exclude_paths'])
+    # Check whether we should use regex matching or full string matching.
+    match_regex = parsed_config.get('match_regex', 'false')
+    if match_regex not in ['true', 'false']:
+        print('Invalid value for match_regex: {!r}. '
+              'Should be "true" or "false".'.format(match_regex))
+        exit(1)
+    config.match_regex = match_regex == 'true'
+
+    # Check during start-up that we don't have a malformed
+    # regular expression.
+    if config.match_regex:
+        try:
+            for i, l in enumerate(config.licence):
+                re.compile(l)
+        except Exception as e:
+            print('Malformed regular expression on line {}:\n{}'.format(i, e))
+            exit(1)
 
     results = check_paths(config, options.paths)
 
