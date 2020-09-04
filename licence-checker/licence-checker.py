@@ -8,6 +8,7 @@ import argparse
 import fnmatch
 import logging
 import subprocess
+import re
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -46,14 +47,16 @@ class CommentStyle:
         self.first_line_prefix = first_line_prefix
         self.comment_prefix = comment_prefix
 
-    def search_line(self, licence_first_word):
-        return self.comment_prefix + ' ' + licence_first_word
+    def search_line_pattern(self, licence_first_word):
+        return re.compile(
+            re.escape(self.comment_prefix + ' ' + licence_first_word))
 
     def full_line_parts(self, licence_line):
-        return [self.comment_prefix, licence_line]
+        return [re.escape(self.comment_prefix), licence_line]
 
-    def expected_full_line(self, licence_line):
-        return ' '.join(self.full_line_parts(licence_line))
+    def full_line_pattern(self, licence_line):
+        '''Returns a regex pattern which matches one line of licence text.'''
+        return re.compile(' '.join(self.full_line_parts(licence_line)))
 
 
 class LineCommentStyle(CommentStyle):
@@ -75,7 +78,10 @@ class BlockCommentStyle(CommentStyle):
         self.comment_suffix = str(suffix)
 
     def full_line_parts(self, licence_line):
-        return [self.comment_prefix, licence_line, self.comment_suffix]
+        return [
+            re.escape(self.comment_prefix), licence_line,
+            re.escape(self.comment_suffix)
+        ]
 
 
 SLASH_SLASH = '//'
@@ -157,13 +163,33 @@ COMMENT_CHARS = [
 
 class LicenceMatcher:
     '''An object to match a given licence at the start of a file'''
-    def __init__(self, comment_style, licence):
+    def __init__(self, comment_style, licence, match_regex):
         self.style = comment_style
+        self.expected_lines = list()
+        # In case we are using regex matching we can pass the full line "as is"
+        if match_regex:
+            for i, ll in enumerate(licence):
+                try:
+                    self.expected_lines.append(
+                        comment_style.full_line_pattern(ll))
+                    # Catch any regex error here and raise a runtime error.
+                except re.error as e:
+                    raise RuntimeError(
+                        "Cannot compile line {} of the licence as a regular expression. Saw `{}`: {}"
+                        .format(i, e.pattern[e.pos], e.msg))
+            # use the "first line" as a licence marker
+            self.search_marker = self.expected_lines[0]
+        # For non-regex matching we need to escape everything.
+        # This can never throw an exception as everything has been escaped and
+        # therefore is always a legal regex.
+        else:
+            self.search_marker = comment_style.search_line_pattern(
+                licence.first_word)
+            self.expected_lines = [
+                comment_style.full_line_pattern(re.escape(ll))
+                for ll in licence
+            ]
 
-        self.search_marker = comment_style.search_line(licence.first_word)
-        self.expected_lines = [
-            comment_style.expected_full_line(ll) for ll in licence
-        ]
         self.lines_left = []
 
     def looks_like_first_line_comment(self, line):
@@ -173,7 +199,7 @@ class LicenceMatcher:
         return line.startswith(self.style.comment_prefix)
 
     def looks_like_first_line(self, line):
-        return line.startswith(self.search_marker)
+        return self.search_marker.match(line) is not None
 
     def start(self):
         '''Reset lines_left, to match at the start of the licence'''
@@ -195,7 +221,7 @@ class LicenceMatcher:
             return (True, True)
 
         next_expected = self.lines_left[0]
-        matched = (line == next_expected)
+        matched = next_expected.fullmatch(line)
 
         if not matched:
             return (False, False)
@@ -307,10 +333,13 @@ def matches_exclude_pattern(config, file_path):
 
 def check_paths(config, git_paths):
     results = ResultsTracker(config.base_dir)
-    all_matchers = {
-        key: LicenceMatcher(style, config.licence)
-        for key, style in COMMENT_STYLES.items()
-    }
+    try:
+        all_matchers = {
+            key: LicenceMatcher(style, config.licence, config.match_regex)
+            for key, style in COMMENT_STYLES.items()
+        }
+    except RuntimeError as e:
+        exit(e)
 
     for filepath in git_find_all_file_paths(config.base_dir, git_paths):
         # Skip symlinks (with message)
@@ -460,6 +489,13 @@ def main():
 
     config.licence = LicenceHeader(parsed_config['licence'])
     config.exclude_paths = set(parsed_config['exclude_paths'])
+    # Check whether we should use regex matching or full string matching.
+    match_regex = parsed_config.get('match_regex', 'false')
+    if match_regex not in ['true', 'false']:
+        print('Invalid value for match_regex: {!r}. '
+              'Should be "true" or "false".'.format(match_regex))
+        exit(1)
+    config.match_regex = match_regex == 'true'
 
     results = check_paths(config, options.paths)
 
