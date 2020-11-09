@@ -122,6 +122,8 @@ COMMENT_CHARS = [
     ([".vlt"], SLASH_SLASH),  # Verilator configuration (waiver) files
     ([".vbl"], HASH),  # Verible configuration files
     ([".el", ".el.tpl"], SLASH_SLASH),  # Exclusion list
+    ([".cfg", ".cfg.tpl"], [SLASH_SLASH,
+                            HASH]),  # Kinds of configuration files
     ([".f"], []),  # File lists (not checked)
 
     # The following two rules will inevitably bite us.
