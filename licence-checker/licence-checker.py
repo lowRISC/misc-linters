@@ -7,8 +7,8 @@
 import argparse
 import fnmatch
 import logging
-import subprocess
 import re
+import subprocess
 from pathlib import Path
 from types import SimpleNamespace
 
