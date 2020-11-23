@@ -4,14 +4,224 @@
 //
 // Example Licence Checker File
 {
+  // The licence text. Newlines within the licence are preserved.
+  //
+  // All lines in this licence must be present and match exactly the contents
+  // here, using the per-file comment style. The licence must be in the first
+  // comment block at the top of the file.
   licence:
     '''
     Copyright lowRISC contributors.
     Licensed under the Apache License, Version 2.0, see LICENSE for details.
     SPDX-License-Identifier: Apache-2.0
     ''',
+  // Whether the `licence` above is a regular expression or not.
   match_regex: "false",
+  // Files that are never checked for a licence header
   exclude_paths: [
     '.style.yapf',
   ],
+  // These are added to every suffix in `comment_styles_by_suffix` to support
+  // templating any of the filetypes specified there, using the same comment
+  // style as expected in the file itself.
+  //
+  // This means any suffix in this list should come last in
+  // `comment_styles_by_suffix`, so `foo.tpl` is not confused with `foo.c.tpl`
+  // (the latter of which should use the style that `foo.c` would use.
+  template_suffixes: [
+    ".tpl",
+  ],
+  // (Prioritised) Mapping of file name suffixes to comment style. If the suffix
+  // of your file does not match one of these, it will not be checked.
+  //
+  // Each entry is a pair (suffixes, styles). suffixes is a list of file
+  // suffixes: if a filename matches one of these suffixes, we'll use the styles
+  // in styles. styles is either a string or a list of strings. If there is one
+  // or more strings, these strings must all be keys of COMMENT_STYLES and they
+  // give the different comment styles that are acceptable for the file type.
+  //
+  // These rules are given in priority order. Tuples higher in the list are
+  // matched before those later in the list, on purpose.
+  //
+  // Files that either do not match any extension or that have an empty list of
+  // styles are not checked for a licence.
+  //
+  // Available Comment Styles:
+  // - "//" - Line Comments using `//`
+  // - "#"  - Line Comments using `#`
+  // - "/*" - Block Comments using `/* */`. Each line in the licence is wrapped
+  //          in a single block comment.
+  // - "corefile" - The FuseSoC Core file style. This is `#` line comments, but
+  //          the first line has a different format.
+  comment_styles_by_suffix: [
+    // Hardware Files
+    {
+      // SystemVerilog
+      suffixes: [".svh", ".sv"],
+      styles: ["//"],
+    },
+    // Hardware Build Systems
+    {
+      // TCL Files
+      suffixes: [".tcl", ".sdc"],
+      styles: ["#"],
+    },
+    {
+      // FuseSoc Core Files
+      suffixes: [".core"],
+      styles: ["corefile"],
+    },
+    {
+      // Makefiles
+      suffixes: ["Makefile", ".mk"],
+      styles: ["#"]
+    },
+    {
+      // Yosys script
+      suffixes: [".ys"],
+      styles: ["#"],
+    },
+    {
+      // AscentLint waiver Files
+      suffixes: [".waiver"],
+      styles: ["#"],
+    },
+    {
+      // Verilator configuration (waiver) files
+      suffixes: [".vlt"],
+      styles: ["//"],
+    },
+    {
+      // Verible configuration files
+      suffixes: [".vbl"],
+      styles: ["#"],
+    },
+    {
+      // Exclusion lists
+      suffixes: [".el"],
+      styles: ["//"],
+    },
+    {
+      // General configuration files
+      suffixes: [".cfg"],
+      styles: ["//", "#"],
+    },
+    {
+      // File lists (not checked)
+      suffixes: [".f"],
+      styles: []
+    },
+    // The following two rules will inevitably bite us
+    {
+      // Riviera dofile
+      suffixes: ["riviera_run.do"],
+      styles: ["#"],
+    },
+    {
+      // Cadence LEC dofile
+      suffixes: [".do"],
+      styles: ["//"],
+    },
+    // Software Files
+    {
+      // C, C++ Sources and Headers
+      suffixes: [".c", ".h", ".cc", ".cpp"],
+      styles: ["//"],
+    },
+    {
+      // C, C++ X-Macro List Declaration Files
+      suffixes: [".def"],
+      styles: ["//"],
+    },
+    {
+      // Assembly (for Preprocessing)
+      suffixes: [".S"],
+      styles: ["//", "/*"],
+    },
+    {
+      // Assembly (without Preprocessing)
+      suffixes: [".s"],
+      styles: ["/*"],
+    },
+    {
+      // Linker Scripts
+      suffixes: [".ld"],
+      styles: ["/*"],
+    },
+    {
+      // Rust
+      suffixes: [".rs"],
+      styles: ["//"],
+    },
+    // Software Build Systems
+    {
+      suffixes: ["meson.build", "toolchain.txt", "meson_options.txt"],
+      styles: ["#"],
+    },
+    // General tooling
+    {
+      // Python
+      suffixes: [".py"],
+      styles: ["#"],
+    },
+    {
+      // Shell Scripts
+      suffixes: [".sh"],
+      styles: ["#"],
+    },
+    {
+      // Dockerfiles
+      suffixes: ["Dockerfile"],
+      styles: ["#"]
+    },
+    // Configuration
+    {
+      // HJSON
+      suffixes: [".hjson"],
+      styles: ["//"],
+    },
+    {
+      // YAML
+      suffixes: [".yml", ".yaml"],
+      styles: ["#"],
+    },
+    {
+      // TOML
+      suffixes: [".toml"],
+      styles: ["#"]
+    },
+    {
+      // Apt and Python Requirements files
+      suffixes: ["requirements.txt"],
+      styles: ["#"],
+    },
+    {
+      // nginx config
+      suffixes: ["redirector.conf"],
+      styles: ["#"],
+    },
+    // Documentation
+    {
+      // Markdown and HTML (not checked)
+      suffixes: [".md", ".html"],
+      styles: [],
+    },
+    {
+      // CSS
+      suffixes: [".css"],
+      styles: ["/*"],
+    },
+    {
+      // SCSS
+      suffixes: [".scss"],
+      styles: ["//"],
+    },
+    // Templates (last because there may be overlaps above, due to
+    // `template_suffixes` below).
+    {
+      suffixes: [".tpl"],
+      styles: ["#"],
+    },
+  ],
+
 }

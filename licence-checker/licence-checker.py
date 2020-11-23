@@ -6,6 +6,7 @@
 
 import argparse
 import fnmatch
+import itertools
 import logging
 import re
 import subprocess
@@ -111,56 +112,99 @@ COMMENT_STYLES = {
 # styles are not checked for a licence.
 COMMENT_CHARS = [
     # Hardware Files
-    ([".svh", ".sv", ".sv.tpl"], SLASH_SLASH),  # SystemVerilog
+    ([".svh", ".sv", ".sv.tpl"], [SLASH_SLASH]),  # SystemVerilog
 
     # Hardware Build Systems
-    ([".tcl", ".sdc"], HASH),  # tcl
-    ([".core", ".core.tpl"], 'corefile'),  # FuseSoC Core Files
-    (["Makefile", ".mk"], HASH),  # Makefiles
-    ([".ys"], HASH),  # Yosys script
-    ([".waiver"], HASH),  # AscentLint waiver files
-    ([".vlt"], SLASH_SLASH),  # Verilator configuration (waiver) files
-    ([".vbl"], HASH),  # Verible configuration files
-    ([".el", ".el.tpl"], SLASH_SLASH),  # Exclusion list
+    ([".tcl", ".sdc"], [HASH]),  # tcl
+    ([".core", ".core.tpl"], ['corefile']),  # FuseSoC Core Files
+    (["Makefile", ".mk"], [HASH]),  # Makefiles
+    ([".ys"], [HASH]),  # Yosys script
+    ([".waiver"], [HASH]),  # AscentLint waiver files
+    ([".vlt"], [SLASH_SLASH]),  # Verilator configuration (waiver) files
+    ([".vbl"], [HASH]),  # Verible configuration files
+    ([".el", ".el.tpl"], [SLASH_SLASH]),  # Exclusion list
     ([".cfg", ".cfg.tpl"], [SLASH_SLASH,
                             HASH]),  # Kinds of configuration files
     ([".f"], []),  # File lists (not checked)
 
     # The following two rules will inevitably bite us.
-    (["riviera_run.do"], HASH),  # Riviera dofile
-    ([".do"], SLASH_SLASH),  # Cadence LEC dofile
+    (["riviera_run.do"], [HASH]),  # Riviera dofile
+    ([".do"], [SLASH_SLASH]),  # Cadence LEC dofile
 
     # Software Files
-    ([".c", ".c.tpl", ".h", ".h.tpl", ".cc", ".cpp"], SLASH_SLASH),  # C, C++
-    ([".def"], SLASH_SLASH),  # C, C++ X-Include List Declaration Files
+    ([".c", ".c.tpl", ".h", ".h.tpl", ".cc", ".cpp"], [SLASH_SLASH]),  # C, C++
+    ([".def"], [SLASH_SLASH]),  # C, C++ X-Include List Declaration Files
     ([".S"], [SLASH_SLASH, SLASH_STAR]),  # Assembly (With Preprocessing)
-    ([".s"], SLASH_STAR),  # Assembly (Without Preprocessing)
-    ([".ld", ".ld.tpl"], SLASH_STAR),  # Linker Scripts
-    ([".rs", ".rs.tpl"], SLASH_SLASH),  # Rust
+    ([".s"], [SLASH_STAR]),  # Assembly (Without Preprocessing)
+    ([".ld", ".ld.tpl"], [SLASH_STAR]),  # Linker Scripts
+    ([".rs", ".rs.tpl"], [SLASH_SLASH]),  # Rust
 
     # Software Build Systems
-    (["meson.build", "toolchain.txt", "meson_options.txt"], HASH),  # Meson
+    (["meson.build", "toolchain.txt", "meson_options.txt"], [HASH]),  # Meson
 
     # General Tooling
-    ([".py"], HASH),  # Python
-    ([".sh"], HASH),  # Shell Scripts
-    (["Dockerfile"], HASH),  # Dockerfiles
+    ([".py"], [HASH]),  # Python
+    ([".sh"], [HASH]),  # Shell Scripts
+    (["Dockerfile"], [HASH]),  # Dockerfiles
 
     # Configuration
-    ([".hjson", ".hjson.tpl"], SLASH_SLASH),  # hjson
-    ([".yml", ".yaml"], HASH),  # YAML
-    ([".toml"], HASH),  # TOML
-    (["-requirements.txt"], HASH),  # Apt and Python requirements files
-    (["redirector.conf"], HASH),  # nginx config
+    ([".hjson", ".hjson.tpl"], [SLASH_SLASH]),  # hjson
+    ([".yml", ".yaml"], [HASH]),  # YAML
+    ([".toml"], [HASH]),  # TOML
+    (["-requirements.txt"], [HASH]),  # Apt and Python requirements files
+    (["redirector.conf"], [HASH]),  # nginx config
 
     # Documentation
     ([".md", ".md.tpl", ".html"], []),  # Markdown and HTML (not checked)
-    ([".css"], SLASH_STAR),  # CSS
-    ([".scss"], SLASH_SLASH),  # SCSS
+    ([".css"], [SLASH_STAR]),  # CSS
+    ([".scss"], [SLASH_SLASH]),  # SCSS
 
     # Templates (Last because there are overlaps with extensions above)
-    ([".tpl"], HASH),  # Mako templates
+    ([".tpl"], [HASH]),  # Mako templates
 ]
+
+
+def parse_comment_style_config(styles_by_suffix, template_suffixes=[]):
+    known_styles = set(COMMENT_STYLES.keys())
+
+    def with_template_suffixes(suffixes, template_suffixes):
+        templated_suffixes = []
+        for suffix, template_suffix in itertools.product(
+                suffixes, template_suffixes):
+            templated_suffixes.append(suffix + template_suffix)
+
+        return suffixes + templated_suffixes
+
+    all_styles = []
+
+    for d in styles_by_suffix:
+        assert 'suffixes' in d
+        assert 'styles' in d
+
+        suffixes = d['suffixes']
+        styles = d['styles']
+
+        this_style = SimpleNamespace()
+        this_style.suffixes = with_template_suffixes(suffixes,
+                                                     template_suffixes)
+        this_style.styles = [s for s in styles if s in known_styles]
+
+        all_styles.append(this_style)
+    else:
+        # Turn `COMMENT_CHARS` into the right format, because no comment styles
+        # given.
+        for (suffixes, styles) in COMMENT_CHARS:
+            assert isinstance(suffixes, list)
+            assert isinstance(styles, list)
+
+            this_style = SimpleNamespace()
+            this_style.suffixes = with_template_suffixes(
+                suffixes, template_suffixes)
+            this_style.styles = [s for s in styles if s in known_styles]
+
+            all_styles.append(this_style)
+
+    return all_styles
 
 
 class LicenceMatcher:
@@ -233,30 +277,30 @@ class LicenceMatcher:
             return (True, not self.lines_left)
 
 
-def detect_comment_char(all_matchers, filename):
+def detect_comment_char(all_matchers, all_styles, filename):
     '''Find zero or more LicenceMatcher objects for filename
 
     all_matchers should be a dict like COMMENT_STYLES, but where the values are
     the corresponding LicenceMatcher objects.
 
+    all_styles is a list of style configuration objects. Each one has a `styles`
+    attribute and a `suffixes` attribute, both lists of strings. The strings in
+    the `styles` attribute identify styles in the `all_matchers` dict.
+
     '''
     found = None
-    for (suffixes, keys) in COMMENT_CHARS:
+    for style_config in all_styles:
         if found is not None:
             break
-        for suffix in suffixes:
+        for suffix in style_config.suffixes:
             if filename.endswith(suffix):
-                found = keys
+                found = style_config.styles
                 break
 
     if found is None:
         return []
 
-    if not isinstance(found, list):
-        assert isinstance(found, str)
-        found = [found]
-
-    return [all_matchers[key] for key in found]
+    return [all_matchers[style_name] for style_name in found]
 
 
 def git_find_repo_toplevel():
@@ -358,13 +402,14 @@ def check_paths(config, git_paths):
             results.excluded(filepath, "Path matches exclude pattern")
             continue
 
-        check_file_for_licence(all_matchers, results, filepath)
+        check_file_for_licence(all_matchers, config.comment_styles_by_suffix,
+                               results, filepath)
 
     return results
 
 
-def check_file_for_licence(all_matchers, results, filepath):
-    matchers = detect_comment_char(all_matchers, filepath.name)
+def check_file_for_licence(all_matchers, all_styles, results, filepath):
+    matchers = detect_comment_char(all_matchers, all_styles, filepath.name)
 
     if not matchers:
         results.skipped(filepath, "Unknown comment style")
@@ -498,6 +543,10 @@ def main():
               'Should be "true" or "false".'.format(match_regex))
         exit(1)
     config.match_regex = match_regex == 'true'
+
+    config.comment_styles_by_suffix = parse_comment_style_config(
+        parsed_config.get('comment_styles_by_suffix', []),
+        parsed_config.get('template_suffixes', []))
 
     results = check_paths(config, options.paths)
 
