@@ -140,9 +140,12 @@ COMMENT_CHARS = [
     ([".s"], SLASH_STAR),  # Assembly (Without Preprocessing)
     ([".ld", ".ld.tpl"], SLASH_STAR),  # Linker Scripts
     ([".rs", ".rs.tpl"], SLASH_SLASH),  # Rust
+    ([".go"], SLASH_SLASH),  # Golang
+    ([".proto"], SLASH_SLASH),  # Protobuf
 
     # Software Build Systems
     (["meson.build", "toolchain.txt", "meson_options.txt"], HASH),  # Meson
+    (["WORKSPACE", "BUILD", "BUILD.bazel", ".bzl"], HASH),  # Bazel
 
     # General Tooling
     ([".py"], HASH),  # Python
