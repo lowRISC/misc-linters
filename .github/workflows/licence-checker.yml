@@ -22,13 +22,7 @@ jobs:
       with:
         # TODO: Check on Python 3.8 too
         python-version: 3.6
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
     - name: Lint with yapf
-      run: |
-        yapf --style .style.yapf --diff --recursive .
+      run: bazel run //:yapf
     - name: Run Licence Checker
-      run: |
-        ./licence-checker/licence-checker.py --config ./licence-checker.hjson
+      run: bazel run //:licence-check
