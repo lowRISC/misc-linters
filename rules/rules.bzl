@@ -5,6 +5,7 @@
 """Bazel rules for lowRISC linters."""
 
 load("@bazel_skylib//lib:shell.bzl", "shell")
+load("@lowrisc_misc_linters_pip//:requirements.bzl", "entry_point")
 
 def _licence_check_impl(ctx):
     config = ctx.file.config
@@ -90,6 +91,83 @@ licence_check = rule(
         ),
         "_sh_runfiles": attr.label(
             default = "@bazel_tools//tools/bash/runfiles",
+            allow_single_file = True,
+        ),
+    },
+    executable = True,
+)
+
+def _yapf_check_impl(ctx):
+    # Hack to make Bazel build the checker correctly.
+    #
+    # Bazel py_binaries require a .runfiles directory to be present, but for
+    # some reason or another it does not provide a good way to extract those
+    # for building as a dependency from a PyInfo provider.
+    #
+    # https://github.com/bazelbuild/bazel/issues/7357
+    checker = ctx.actions.declare_file(ctx.label.name + ".yapf")
+    ctx.actions.run_shell(
+        tools = [ctx.executable.yapf],
+        outputs = [checker],
+        command = 'touch "{}"'.format(checker.path),
+    )
+
+    script = ctx.actions.declare_file(ctx.label.name + ".bash")
+    exclude_patterns = ["\\! -path {}".format(shell.quote(p)) for p in ctx.attr.exclude_patterns]
+    include_patterns = ["-name {}".format(shell.quote(p)) for p in ctx.attr.patterns]
+    ctx.actions.expand_template(
+        template = ctx.file._runner,
+        output = script,
+        substitutions = {
+            "@@YAPF@@": ctx.executable.yapf.path,
+            "@@EXCLUDE_PATTERNS@@": " ".join(exclude_patterns),
+            "@@INCLUDE_PATTERNS@@": " -o ".join(include_patterns),
+            "@@STYLE@@": ctx.file.style.path,
+            "@@MODE@@": ctx.attr.mode,
+        },
+        is_executable = True,
+    )
+
+    runfiles = ctx.runfiles(
+        files = [ctx.file.style, checker],
+        transitive_files = ctx.attr.yapf.files,
+    )
+    runfiles = runfiles.merge(
+        ctx.attr.yapf.default_runfiles,
+    )
+
+    return DefaultInfo(
+        runfiles = runfiles,
+        executable = script,
+    )
+
+yapf_check = rule(
+    implementation = _yapf_check_impl,
+    attrs = {
+        "patterns": attr.string_list(
+            default = ["*.py"],
+            doc = "Filename patterns for format checking",
+        ),
+        "exclude_patterns": attr.string_list(
+            doc = "Filename patterns to exlucde from format checking",
+        ),
+        "style": attr.label(
+            default = "//:.style.yapf",
+            allow_single_file = True,
+            doc = ".style.yapf configuration file",
+        ),
+        "mode": attr.string(
+            mandatory = True,
+            doc = "The mode to run yapf in",
+        ),
+        "yapf": attr.label(
+            default = entry_point("yapf"),
+            cfg = "host",
+            executable = True,
+            doc = "The yapf executable",
+        ),
+        "_runner": attr.label(
+            default = "//rules:yapf-runner.template.sh",
             allow_single_file = True,
         ),
     },
