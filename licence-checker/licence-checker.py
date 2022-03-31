@@ -119,7 +119,7 @@ COMMENT_CHARS = [
     (["Makefile", ".mk"], HASH),  # Makefiles
     ([".ys"], HASH),  # Yosys script
     ([".waiver"], HASH),  # AscentLint waiver files
-    ([".vlt"], SLASH_SLASH),  # Verilator configuration (waiver) files
+    ([".vlt, vlt.tpl"], SLASH_SLASH),  # Verilator configuration (waiver) files
     ([".vbl"], HASH),  # Verible configuration files
     ([".el", ".el.tpl"], SLASH_SLASH),  # Exclusion list
     ([".cfg", ".cfg.tpl"], [SLASH_SLASH,
