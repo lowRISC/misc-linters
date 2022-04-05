@@ -189,8 +189,8 @@ class LicenceMatcher:
                     # Catch any regex error here and raise a runtime error.
                 except re.error as e:
                     raise RuntimeError(
-                        "Can't compile line {} of the licence as a regular expression. Saw `{}`: {}"
-                        .format(i, e.pattern[e.pos], e.msg))
+                        f"Can't compile line {i} of the licence as a regular "
+                        f"expression. Saw `{e.pattern[e.pos]}`: {e.msg}")
             # use the "first line" as a licence marker
             self.search_marker = self.expected_lines[0]
         # For non-regex matching we need to escape everything.
