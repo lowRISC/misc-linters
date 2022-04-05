@@ -100,6 +100,11 @@ COMMENT_STYLES = {
     'corefile': DifferentFirstLineCommentStyle("CAPI=2", "#")
 }
 
+# Suffixes that can be added to those in the list below. For example, we've got
+# ".c" as one of the possible suffixes for a C file below. If ".tpl" is in
+# TEMPLATE_SUFFIXES then "foo.c.tpl" will be treated as a C file.
+TEMPLATE_SUFFIXES = ['.tpl']
+
 # (Prioritised) Mapping of file name suffixes to comment style. If the suffix
 # of your file does not match one of these, it will not be checked.
 #
@@ -116,19 +121,18 @@ COMMENT_STYLES = {
 # styles are not checked for a licence.
 COMMENT_CHARS = [
     # Hardware Files
-    ([".svh", ".sv", ".sv.tpl"], SLASH_SLASH),  # SystemVerilog
+    ([".svh", ".sv"], SLASH_SLASH),  # SystemVerilog
 
     # Hardware Build Systems
     ([".tcl", ".sdc"], HASH),  # tcl
-    ([".core", ".core.tpl"], 'corefile'),  # FuseSoC Core Files
+    ([".core"], 'corefile'),  # FuseSoC Core Files
     (["Makefile", ".mk"], HASH),  # Makefiles
     ([".ys"], HASH),  # Yosys script
     ([".waiver"], HASH),  # AscentLint waiver files
-    ([".vlt", ".vlt.tpl"], SLASH_SLASH),  # Verilator cfg (waiver) files
+    ([".vlt"], SLASH_SLASH),  # Verilator cfg (waiver) files
     ([".vbl"], HASH),  # Verible configuration files
-    ([".el", ".el.tpl"], SLASH_SLASH),  # Exclusion list
-    ([".cfg", ".cfg.tpl"], [SLASH_SLASH,
-                            HASH]),  # Kinds of configuration files
+    ([".el"], SLASH_SLASH),  # Exclusion list
+    ([".cfg"], [SLASH_SLASH, HASH]),  # Kinds of configuration files
     ([".f"], []),  # File lists (not checked)
 
     # The following two rules will inevitably bite us.
@@ -136,15 +140,12 @@ COMMENT_CHARS = [
     ([".do"], SLASH_SLASH),  # Cadence LEC dofile
 
     # Software Files
-    ([
-        ".c", ".c.tpl", ".h", ".h.tpl", ".inc", ".inc.tpl", ".cc", ".cc.tpl",
-        ".cpp", ".cpp.tpl"
-    ], SLASH_SLASH),  # C, C++
+    ([".c", ".h", ".inc", ".cc", ".cpp"], SLASH_SLASH),  # C, C++
     ([".def"], SLASH_SLASH),  # C, C++ X-Include List Declaration Files
     ([".S"], [SLASH_SLASH, SLASH_STAR]),  # Assembly (With Preprocessing)
     ([".s"], SLASH_STAR),  # Assembly (Without Preprocessing)
-    ([".ld", ".ld.tpl"], SLASH_STAR),  # Linker Scripts
-    ([".rs", ".rs.tpl"], SLASH_SLASH),  # Rust
+    ([".ld"], SLASH_STAR),  # Linker Scripts
+    ([".rs"], SLASH_SLASH),  # Rust
     ([".go"], SLASH_SLASH),  # Golang
     ([".proto"], SLASH_SLASH),  # Protobuf
 
@@ -158,14 +159,14 @@ COMMENT_CHARS = [
     (["Dockerfile"], HASH),  # Dockerfiles
 
     # Configuration
-    ([".hjson", ".hjson.tpl"], SLASH_SLASH),  # hjson
+    ([".hjson"], SLASH_SLASH),  # hjson
     ([".yml", ".yaml"], HASH),  # YAML
     ([".toml"], HASH),  # TOML
     (["-requirements.txt"], HASH),  # Apt and Python requirements files
     (["redirector.conf"], HASH),  # nginx config
 
     # Documentation
-    ([".md", ".md.tpl", ".html"], []),  # Markdown and HTML (not checked)
+    ([".md", ".html"], []),  # Markdown and HTML (not checked)
     ([".css"], SLASH_STAR),  # CSS
     ([".scss"], SLASH_SLASH),  # SCSS
 
@@ -245,6 +246,25 @@ class LicenceMatcher:
             return (True, not self.lines_left)
 
 
+def comment_styles_for_filename(filename):
+    '''Return zero or more comment style strings based on filename'''
+    all_tpl_suffixes = [''] + TEMPLATE_SUFFIXES
+    for (suffixes, keys) in COMMENT_CHARS:
+        for suffix in suffixes:
+            for tpl_suffix in all_tpl_suffixes:
+                full_suffix = suffix + tpl_suffix
+                if filename.endswith(full_suffix):
+                    # The keys entry in COMMENT_CHARS is either a single string
+                    # or a list of strings (to make it easier to write the
+                    # giant constant above). Unconditionally convert to a list
+                    # of strings to make things nicer downstream.
+                    if isinstance(keys, str):
+                        keys = [keys]
+                    assert isinstance(keys, list)
+                    return keys
+    return []
+
+
 def detect_comment_char(all_matchers, filename):
     '''Find zero or more LicenceMatcher objects for filename
 
@@ -252,23 +272,7 @@ def detect_comment_char(all_matchers, filename):
     the corresponding LicenceMatcher objects.
 
     '''
-    found = None
-    for (suffixes, keys) in COMMENT_CHARS:
-        if found is not None:
-            break
-        for suffix in suffixes:
-            if filename.endswith(suffix):
-                found = keys
-                break
-
-    if found is None:
-        return []
-
-    if not isinstance(found, list):
-        assert isinstance(found, str)
-        found = [found]
-
-    return [all_matchers[key] for key in found]
+    return [all_matchers[key] for key in comment_styles_for_filename(filename)]
 
 
 def git_find_repo_toplevel():
