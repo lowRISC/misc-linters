@@ -15,7 +15,11 @@ http_archive(
 load("@bazel_skylib//:workspace.bzl", "bazel_skylib_workspace")
 bazel_skylib_workspace()
 
+load("//rules:repos.bzl", "lowrisc_misc_linters_repos")
+lowrisc_misc_linters_repos()
+
 load("//rules:deps.bzl", "lowrisc_misc_linters_dependencies")
 lowrisc_misc_linters_dependencies()
+
 load("//rules:pip.bzl", "lowrisc_misc_linters_pip_dependencies")
 lowrisc_misc_linters_pip_dependencies()
