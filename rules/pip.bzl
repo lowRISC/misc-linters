@@ -5,6 +5,7 @@
 """Dependencies that linter rules depend on."""
 
 load("@rules_python//python:pip.bzl", "pip_install")
+load("@python3//:defs.bzl", "interpreter")
 
 def lowrisc_misc_linters_pip_dependencies():
   """
@@ -17,5 +18,6 @@ def lowrisc_misc_linters_pip_dependencies():
 
   pip_install(
      name = "lowrisc_misc_linters_pip",
+     python_interpreter_target = interpreter,
      requirements = Label("//:requirements.txt"),
   )
