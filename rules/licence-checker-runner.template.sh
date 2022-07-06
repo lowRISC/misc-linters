@@ -8,4 +8,4 @@ if ! cd "$BUILD_WORKSPACE_DIRECTORY"; then
     exit 1
 fi
 
-"@@LICENCE_CHECKER@@" --config="@@CONFIG@@" .
+"@@LICENCE_CHECKER@@" --config="@@CONFIG@@" "$@"
