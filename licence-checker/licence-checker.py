@@ -155,7 +155,7 @@ COMMENT_CHARS = [
     ([".sh"], HASH),  # Shell Scripts
     (["Dockerfile"], HASH),  # Dockerfiles
     # Configuration
-    ([".hjson"], SLASH_SLASH),  # hjson
+    ([".hjson"], [SLASH_SLASH, SLASH_STAR, HASH]),  # hjson
     ([".yml", ".yaml"], HASH),  # YAML
     ([".toml"], HASH),  # TOML
     (["-requirements.txt"], HASH),  # Apt and Python requirements files
