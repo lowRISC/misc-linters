@@ -37,6 +37,7 @@ def _pip_wheel_impl(rctx):
         "-m",
         "pip",
         "install",
+        "--user",
         "wheel",
     ]
     rctx.report_progress("Installing the Python wheel package")
@@ -54,6 +55,7 @@ def _pip_wheel_impl(rctx):
         "-m",
         "pip",
         "wheel",
+        "--use-pep517",
         "-r",
         rctx.path(rctx.attr.requirements),
         "-w",
