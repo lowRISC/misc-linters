@@ -2,7 +2,6 @@
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
 
-hjson
-tabulate
-yapf
-
+hjson==3.1.0
+tabulate==0.8.10
+yapf==0.32.0
