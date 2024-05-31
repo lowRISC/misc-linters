@@ -4,4 +4,3 @@
 
 hjson==3.1.0
 tabulate==0.8.10
-yapf==0.32.0
