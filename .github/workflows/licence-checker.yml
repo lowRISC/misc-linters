@@ -22,5 +22,7 @@ jobs:
       with:
         # TODO: Check on Python 3.8 too
         python-version: 3.6
+    - name: Check formatting with Ruff
+      run: bazel run :format.check
     - name: Run Licence Checker
       run: bazel run //:licence-check
