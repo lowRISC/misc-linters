@@ -23,6 +23,16 @@ load("@lowrisc_lint//rules:pip.bzl", "lowrisc_misc_linters_pip_dependencies")
 lowrisc_misc_linters_pip_dependencies()
 ```
 
+If using `bzlmod`, instead add the following to `MODULE.bazel`:
+
+```bazel
+bazel_dep("lowrisc_misc_linters")
+git_override(
+  module_name = "lowrisc_misc_linters",
+  remote = "https://github.com/lowRISC/misc-linters",
+)
+```
+
 and then in a BUILD file, like the root:
 
 ```bazel
