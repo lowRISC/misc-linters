@@ -1,6 +1,6 @@
 module(name = "lowrisc_misc_linters")
 
-bazel_dep(name = "rules_python", version = "0.32.2")
+bazel_dep(name = "rules_python", version = "0.34.0")
 bazel_dep(
     name = "aspect_rules_lint",
     version = "1.0.0-rc3",
