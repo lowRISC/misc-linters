@@ -21,6 +21,8 @@ load("@lowrisc_lint//rules:deps.bzl", "lowrisc_misc_linters_dependencies")
 lowrisc_misc_linters_dependencies()
 load("@lowrisc_lint//rules:pip.bzl", "lowrisc_misc_linters_pip_dependencies")
 lowrisc_misc_linters_pip_dependencies()
+load("@lowrisc_misc_linters_pip//:requirements.bzl", "install_deps")
+install_deps()
 ```
 
 If using `bzlmod`, instead add the following to `MODULE.bazel`:

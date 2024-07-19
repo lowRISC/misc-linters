@@ -13,6 +13,9 @@ lowrisc_misc_linters_dependencies()
 load("//rules:pip.bzl", "lowrisc_misc_linters_pip_dependencies")
 lowrisc_misc_linters_pip_dependencies()
 
+load("@lowrisc_misc_linters_pip//:requirements.bzl", "install_deps")
+install_deps()
+
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 http_archive(
     name = "aspect_rules_lint",
