@@ -149,7 +149,17 @@ COMMENT_CHARS = [
     ([".proto"], SLASH_SLASH),  # Protobuf
     # Software Build Systems
     (["meson.build", "toolchain.txt", "meson_options.txt"], HASH),  # Meson
-    (["WORKSPACE", "BUILD", "BUILD.bazel", ".bzl"], HASH),  # Bazel
+    (
+        [
+            "WORKSPACE",
+            "WORKSPACE.bzlmod",
+            "MODULE.bazel",
+            "BUILD",
+            "BUILD.bazel",
+            ".bzl",
+        ],
+        HASH,
+    ),  # Bazel
     # General Tooling
     ([".py"], HASH),  # Python
     ([".sh"], HASH),  # Shell Scripts
