@@ -18,34 +18,20 @@ def _licence_check_impl(ctx):
             },
         )
 
-    # Hack to make Bazel build the checker correctly.
-    #
-    # Bazel py_binaries require a .runfiles directory to be present, but for
-    # some reason or another it does not provide a good way to extract those
-    # for building as a dependency from a PyInfo provider.
-    #
-    # https://github.com/bazelbuild/bazel/issues/7357
-    checker = ctx.actions.declare_file(ctx.label.name + ".checker-witness")
-    ctx.actions.run_shell(
-        tools = [ctx.executable.licence_check],
-        outputs = [checker],
-        command = 'touch "{}"'.format(checker.path),
-    )
-
     workspace = ctx.file.workspace.path if ctx.file.workspace else ""
     script = ctx.actions.declare_file(ctx.label.name + ".bash")
     ctx.actions.expand_template(
         template = ctx.file._runner,
         output = script,
         substitutions = {
-            "@@LICENCE_CHECKER@@": ctx.executable.licence_check.path,
-            "@@CONFIG@@": config.path,
+            "@@LICENCE_CHECKER@@": ctx.executable.licence_check.short_path,
+            "@@CONFIG@@": config.short_path,
             "@@WORKSPACE@@": workspace,
         },
         is_executable = True,
     )
 
-    files = [config, checker]
+    files = [config]
     if ctx.file.workspace:
         files.append(ctx.file.workspace)
 
