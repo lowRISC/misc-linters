@@ -25,3 +25,7 @@ jobs:
       run: bazel run :format.check
     - name: Run Licence Checker
       run: bazel run //:licence-check
+    - name: Test Licence Checker
+      run: |
+        cd tests
+        bazel test :licence_check
