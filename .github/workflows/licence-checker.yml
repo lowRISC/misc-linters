@@ -22,9 +22,9 @@ jobs:
       with:
         python-version: 3.9
     - name: Check formatting with Ruff
-      run: bazel run :format.check
+      run: bazel run //quality:format.check
     - name: Run Licence Checker
-      run: bazel run //:licence-check
+      run: bazel run //quality:licence-check
     - name: Test Licence Checker
       run: |
         cd tests
