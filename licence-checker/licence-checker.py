@@ -93,11 +93,13 @@ class BlockCommentStyle(CommentStyle):
 
 SLASH_SLASH = "//"
 HASH = "#"
+HASH_HASH = "##"
 SLASH_STAR = "/*"
 
 COMMENT_STYLES = {
     SLASH_SLASH: LineCommentStyle("//"),
     HASH: LineCommentStyle("#"),
+    HASH_HASH: LineCommentStyle("##"),
     SLASH_STAR: BlockCommentStyle("/*", "*/"),
     "corefile": DifferentFirstLineCommentStyle("CAPI=2", "#"),
 }
@@ -175,7 +177,7 @@ COMMENT_CHARS = [
     ([".css"], SLASH_STAR),  # CSS
     ([".scss"], SLASH_SLASH),  # SCSS
     # Templates (Last because there are overlaps with extensions above)
-    ([".tpl"], HASH),  # Mako templates
+    ([".tpl"], [HASH_HASH, HASH]),  # Mako templates
 ]
 
 
